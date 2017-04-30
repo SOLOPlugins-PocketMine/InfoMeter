@@ -32,7 +32,7 @@ class Main extends PluginBase implements Listener{
 				"{TPS}" => "서버의 TPS 상태 입니다.",
 				"{AVERAGETPS}" => "서버의 평균 TPS 입니다.",
 				"{PLAYERS}" => "서버의 접속 인원 입니다.",
-				"{MAXPLAYERS}" => "서버에 접속 가능한 최대 인원입니다."
+				"{MAXPLAYERS}" => "서버에 접속 가능한 최대 인원입니다.",
 				"{DATE}" => "날짜를 표시합니다. *월 *일 형식으로 표시됩니다.",
 				"{TIME}" => "시간을 표시합니다. *:* am/pm 형식으로 표시됩니다.",
 
