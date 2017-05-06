@@ -1,6 +1,6 @@
 name: InfoMeter
 author: solo
-version: 0.0.1
+version: 0.1.1
 main: solo\infometer\Main
 api:
 - 2.0.0

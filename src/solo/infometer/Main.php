@@ -8,7 +8,6 @@ use pocketmine\event\Listener;
 use pocketmine\event\server\DataPacketReceiveEvent;
 use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\scheduler\PluginTask;
-use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\utils\Config;
 use onebone\economyapi\EconomyAPI;
 
@@ -42,6 +41,7 @@ class Main extends PluginBase implements Listener{
 
 				"{NAME}" => "플레이어의 이름입니다.",
 				"{MONEY}" => "플레이어가 소지한 돈입니다. (EconomyAPI 플러그인 필요)",
+				"{MONEYRANK}" => "플레이어의 돈 순위입니다. (EconomyAPI 3.0.0 이상 플러그인 필요)",
 				"{X}" => "플레이어의 X 좌표입니다.",
 				"{Y}" => "플레이어의 Y 좌표입니다.",
 				"{Z}" => "플레이어의 Z 좌표입니다.",
@@ -51,7 +51,7 @@ class Main extends PluginBase implements Listener{
 				"{DEVICE}" => "플레이어의 디바이스 모델명입니다",
 				"{GAMEMODE}" => "플레이어의 게임모드입니다."
 			],
-			"view" => "{MOTD}\n§b접속자 수 : §f{PLAYERS}/{MAXPLAYERS}명\n§b현재 월드 : §f{WORLD}\n§b돈 : §f{MONEY}원"
+			"view" => "§l{MOTD}§r\n§b접속자 수 : §f{PLAYERS}/{MAXPLAYERS}명\n§b현재 월드 : §f{WORLD} ({WORLDPLAYERS}명)\n§b돈 : §f{MONEY}원 ({MONEYRANK}위)"
 		]);
 
 		$this->viewString = $this->config->get("view");
@@ -99,6 +99,8 @@ class Main extends PluginBase implements Listener{
 					foreach($level->getPlayers() as $player){
 						$msgPlayer = str_replace([
 							"{NAME}",
+							"{MONEY}",
+							"{MONEYRANK}",
 							"{X}",
 							"{Y}",
 							"{Z}",
@@ -109,19 +111,17 @@ class Main extends PluginBase implements Listener{
 							"{GAMEMODE}"
 						], [
 							$player->getName(),
+							$this->owner->economyapi ===  null ? "§cEconomyAPI Not Found Error§r" : $this->owner->economyapi->myMoney($player),
+							method_exists($this->owner->economyapi, "getRank") ? $this->owner->economyapi->getRank($player) : "§cEconomyAPI Old Version Error",
 							round($player->x, 2),
 							round($player->y, 2),
 							round($player->z, 2),
 							$player->getHealth(),
 							$player->getMaxHealth(),
-							PlayersInfo::getOperatingSystem($player->getName()),
-							PlayersInfo::getDeviceModel($player->getName()),
+							$player->getOperatingSystem(),
+							$player->getDeviceModel(),
 							$player->getGamemode() == 0 ? "서바이벌" : "크리에이티브"
 						], $msgLevel);
-
-						if($this->owner->economyapi != null){
-							$msgPlayer = str_replace("{MONEY}", $this->owner->economyapi->myMoney($player), $msgLevel);
-						}
 
 						$player->sendTip($msgPlayer);
 					}
@@ -134,17 +134,6 @@ class Main extends PluginBase implements Listener{
 
 	public function onDisable(){
 
-	}
-
-	public function onDataPacketReceive(DataPacketReceiveEvent $event){
-		if($event->getPacket()->pid() === ProtocolInfo::LOGIN_PACKET){
-			PlayersInfo::setOperatingSystem($event->getPacket()->username, (new OperatingSystem($event->getPacket()->clientData["DeviceOS"] ?? OperatingSystem::UNKNOWN))->getName());
-			PlayersInfo::setDeviceModel($event->getPacket()->username, $event->getPacket()->clientData["DeviceModel"] ?? "Unknown");
-		}
-	}
-
-	public function onQuit(PlayerQuitEvent $event){
-		PlayersInfo::clear($event->getPlayer());
 	}
 }
 
@@ -163,94 +152,5 @@ class WorldTimeInfo{
 		}else{
 			return "아침";
 		}
-	}
-}
-
-
-class PlayersInfo{
-
-	public static $os = [];
-	public static $device = [];
-
-	public static function setOperatingSystem($name, $os){
-		self::$os[$name] = $os;
-	}
-
-	public static function getOperatingSystem($name){
-		return self::$os[$name] ?? null;
-	}
-
-	public static function setDeviceModel($name, $device){
-		self::$device[$name] = $device;
-	}
-
-	public static function getDeviceModel($name){
-		return self::$device[$name] ?? null;
-	}
-
-	public static function clear(Player $player){
-		unset(self::$os[$player->getName()]);
-		unset(self::$device[$player->getName()]);
-	}
-
-}
-
-
-class OperatingSystem{
-
-	const UNKNOWN = 0;
-	const ANDROID = 1;
-	const IOS = 2;
-	const FIRE_OS = 3;
-	const GEAR_VR = 4;
-	const APPLE_TV = 5;
-	const FIRE_TV = 6;
-	const WINDOWS_10 = 7;
-
-	public $id;
-	public $name;
-
-	public function __construct($id){
-		$this->id = $id;
-		switch($id){
-			case self::ANDROID:
-				$this->name = "Android";
-				break;
-
-			case self::IOS:
-				$this->name = "IOS";
-				break;
-
-			case self::FIRE_OS:
-				$this->name = "Fire OS";
-				break;
-
-			case self::GEAR_VR:
-				$this->name = "Gear VR";
-				break;
-
-			case self::APPLE_TV:
-				$this->name = "Apple TV";
-				break;
-
-			case self::FIRE_TV:
-				$this->name = "Fire TV";
-				break;
-
-			case self::WINDOWS_10:
-				$this->name = "Windows 10";
-				break;
-
-			default:
-				$this->name = "Unknown";
-		}
-	}
-
-	public function getName(){
-		return $this->name;
-	}
-
-	public function getId(){
-		return $this->id;
 	}
 }
